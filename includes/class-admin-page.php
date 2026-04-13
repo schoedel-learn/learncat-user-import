@@ -91,9 +91,10 @@ class LCUI_Admin_Page {
 			wp_die( 'You do not have permission to access this page.' );
 		}
 
-		$results   = null;
-		$parse_err = '';
-		$dry_run   = false;
+		$results      = null;
+		$parse_err    = '';
+		$parse_notices = [];
+		$dry_run      = false;
 
 		// Handle form submission
 		if (
@@ -113,6 +114,10 @@ class LCUI_Admin_Page {
 				'suppress_bb_notifications' => ! empty( $_POST['lcui_suppress_bb_notifications'] ),
 				'suppress_uo_certificate'   => ! empty( $_POST['lcui_suppress_uo_certificate'] ),
 			];
+
+			if ( ! empty( $parsed['notices'] ) ) {
+				$parse_notices = $parsed['notices'];
+			}
 
 			if ( $parsed['error'] ) {
 				$parse_err = $parsed['error'];

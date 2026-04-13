@@ -68,6 +68,9 @@ class LCUI_Field_Registry {
 		if ( ! empty( $def['xprofile_field_id'] ) && in_array( $def['xprofile_type'] ?? '', [ 'selectbox', 'radio', 'checkbox', 'multiselectbox' ], true ) ) {
 			$field   = new BP_XProfile_Field( $def['xprofile_field_id'] );
 			$options = $field->get_children();
+			if ( empty( $options ) || ! is_array( $options ) ) {
+				return [];
+			}
 			return wp_list_pluck( $options, 'name' );
 		}
 

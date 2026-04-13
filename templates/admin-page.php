@@ -3,10 +3,11 @@
  * Admin page template for LearnCAT User Import
  *
  * Variables available:
- *   $results   array|null   Import results (null if no import yet)
- *   $parse_err string       CSV parse error message
- *   $dry_run   bool         Whether the last run was a dry run
- *   $sections  array        Field registry grouped by section
+ *   $results        array|null   Import results (null if no import yet)
+ *   $parse_err      string       CSV parse error message
+ *   $parse_notices  array        Notices from CSV parser (e.g. description row warning)
+ *   $dry_run        bool         Whether the last run was a dry run
+ *   $sections       array        Field registry grouped by section
  */
 defined( 'ABSPATH' ) || exit;
 
@@ -16,6 +17,13 @@ $section_titles = [
 	'woocommerce' => 'WooCommerce',
 	'learndash'   => 'LearnDash',
 ];
+
+$section_css_classes = [
+	'wp_core'     => 'lcui-section-wp',
+	'buddyboss'   => 'lcui-section-bb',
+	'woocommerce' => 'lcui-section-wc',
+	'learndash'   => 'lcui-section-ld',
+];
 ?>
 <div class="wrap lcui-wrap">
 	<h1>
@@ -24,18 +32,37 @@ $section_titles = [
 	</h1>
 	<p class="lcui-tagline">
 		Import users from a CSV file. Columns that don&rsquo;t match a known field are silently ignored.
-		Download the sample CSV to see every available column with descriptions.
+		Download the template below to see every available column with descriptions.
 	</p>
 
 	<?php if ( $parse_err ) : ?>
 		<div class="notice notice-error is-dismissible"><p><strong>CSV Error:</strong> <?php echo esc_html( $parse_err ); ?></p></div>
 	<?php endif; ?>
 
-	<?php /* results rendered at bottom of template */ ?>
+	<?php if ( ! empty( $parse_notices ) ) : ?>
+		<?php foreach ( $parse_notices as $notice ) : ?>
+			<div class="notice notice-<?php echo esc_attr( $notice['type'] ); ?> is-dismissible">
+				<p><?php echo esc_html( $notice['message'] ); ?></p>
+			</div>
+		<?php endforeach; ?>
+	<?php endif; ?>
+
+	<?php
+	// UX-1: Results rendered ABOVE the form so the admin sees them immediately
+	if ( $results ) {
+		lcui_render_results_inline( $results );
+	}
+	?>
 
 	<!-- ── Import form ───────────────────────────────────────────────────── -->
 	<div class="lcui-card">
 		<h2>Import a CSV File</h2>
+
+		<!-- UX-2: Dry run recommendation callout -->
+		<div class="notice notice-info lcui-dry-run-callout" style="margin: 0 0 16px; padding: 10px 14px;">
+			<p><strong>We recommend testing your file first.</strong> Check the &ldquo;Dry run (test only)&rdquo; box below before clicking Import &mdash; no data will be changed.</p>
+		</div>
+
 		<form method="post" enctype="multipart/form-data" action="" id="lcui-import-form">
 			<?php wp_nonce_field( LCUI_Admin_Page::NONCE_ACTION, 'lcui_nonce' ); ?>
 
@@ -51,57 +78,51 @@ $section_titles = [
 					<th scope="row">Dry run</th>
 					<td>
 						<label>
-							<input type="checkbox" name="lcui_dry_run" value="1">
-							Preview what <em>would</em> happen without writing any data
+							<input type="checkbox" name="lcui_dry_run" value="1" checked>
+							Dry run (test only) &mdash; preview what <em>would</em> happen without writing any data
 						</label>
 					</td>
 				</tr>
 			</table>
 
-			<!-- ── Notification Controls ────────────────────────────────────── -->
+			<!-- ── Email & Notification Settings (UX-4) ───────────────────────── -->
 			<div class="lcui-notification-controls">
-				<h3>Notification Controls</h3>
+				<h3>Email &amp; Notification Settings</h3>
 				<p class="description">
-					All notifications fire normally by default (as configured on your site).
-					Check a box below only when you want a <strong>silent import</strong> &mdash;
-					the selected channels will be suppressed for the duration of this import.
+					By default, your site sends emails exactly as it&rsquo;s configured to.
+					Check a box below to turn off specific emails for this import only &mdash;
+					settings are not permanently changed.
 				</p>
 
 				<fieldset>
 					<label class="lcui-suppress-label">
 						<input type="checkbox" name="lcui_suppress_wp_new_user" value="1">
-						<strong>Suppress WP new-user notification email</strong>
-						<span class="description">&mdash; prevents <code>wp_new_user_notification</code> from firing for newly created users</span>
+						Don&rsquo;t send the welcome email to newly created users
 					</label>
 
 					<label class="lcui-suppress-label">
 						<input type="checkbox" name="lcui_suppress_wc_new_account" value="1">
-						<strong>Suppress WooCommerce &ldquo;New Account&rdquo; customer email</strong>
-						<span class="description">&mdash; disables the <code>customer_new_account</code> WooCommerce email</span>
+						Don&rsquo;t send the WooCommerce account created email
 					</label>
 
 					<label class="lcui-suppress-label">
 						<input type="checkbox" name="lcui_suppress_wc_processing" value="1">
-						<strong>Suppress WooCommerce &ldquo;Processing Order&rdquo; customer email</strong>
-						<span class="description">&mdash; disables the <code>customer_processing_order</code> WooCommerce email</span>
+						Don&rsquo;t send the WooCommerce order received email
 					</label>
 
 					<label class="lcui-suppress-label">
 						<input type="checkbox" name="lcui_suppress_ld_enrollment" value="1">
-						<strong>Suppress LearnDash enrollment emails</strong>
-						<span class="description">&mdash; removes callbacks on <code>learndash_course_access_added</code> and <code>learndash_group_access_added</code></span>
+						Don&rsquo;t send LearnDash course enrollment emails
 					</label>
 
 					<label class="lcui-suppress-label">
 						<input type="checkbox" name="lcui_suppress_bb_notifications" value="1">
-						<strong>Suppress BuddyBoss in-app notifications</strong>
-						<span class="description">&mdash; removes callbacks on <code>bp_notification_after_save</code></span>
+						Don&rsquo;t send BuddyBoss in-app notifications
 					</label>
 
 					<label class="lcui-suppress-label">
 						<input type="checkbox" name="lcui_suppress_uo_certificate" value="1">
-						<strong>Suppress Uncanny Owl certificate emails</strong>
-						<span class="description">&mdash; removes Uncanny Owl&rsquo;s callback on <code>learndash_course_completed</code></span>
+						Don&rsquo;t send Uncanny Owl certificate emails
 					</label>
 				</fieldset>
 			</div>
@@ -114,6 +135,7 @@ $section_titles = [
 							If a matching <code>user_login</code> <strong>or</strong> <code>user_email</code> is found,
 							the existing user is <strong>updated</strong> with the CSV values.
 							Blank cells are skipped &mdash; they do not overwrite existing data.
+							If no match is found &mdash; a new user is created using the email and password from the CSV.
 						</p>
 					</td>
 				</tr>
@@ -125,11 +147,11 @@ $section_titles = [
 		</form>
 	</div>
 
-	<!-- ── Template downloads ─────────────────────────────────────────────── -->
+	<!-- ── Template downloads (UX-3) ─────────────────────────────────────── -->
 	<div class="lcui-card">
 		<h2>Download a Template</h2>
 		<p>
-			Use one of these templates to prepare your data. Every importable column is included,
+			Use a template to prepare your data. Every importable column is included,
 			with descriptions and (where applicable) dropdown lists of valid values.
 		</p>
 
@@ -137,26 +159,25 @@ $section_titles = [
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="lcui-download-form lcui-download-primary">
 				<input type="hidden" name="action" value="lcui_download_xlsx">
 				<?php wp_nonce_field( 'lcui_download_xlsx' ); ?>
-				<input type="submit" class="button button-primary button-large" value="⬇ Download Spreadsheet Template">
-				<p class="description">Opens in Excel or Google Sheets. Dropdowns guide you through valid values.</p>
+				<input type="submit" class="button button-primary button-large" value="&#11015; Download Template — Start Here">
+				<p class="description">Opens in Excel or Google Sheets. Dropdown menus guide you to valid values.</p>
 			</form>
 
-			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="lcui-download-form">
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="lcui-download-form lcui-download-csv-link">
 				<input type="hidden" name="action" value="lcui_download_sample">
 				<?php wp_nonce_field( 'lcui_download_sample' ); ?>
-				<input type="submit" class="button button-secondary" value="⬇ Download sample CSV">
-				<p class="description">Plain CSV file with column headers and descriptions. Good for quick edits in a text editor.</p>
+				<p class="description">Advanced users: <button type="submit" class="button-link">Download plain CSV sample</button> (no dropdown guidance)</p>
 			</form>
 		</div>
 	</div>
 
-	<!-- ── Column reference ──────────────────────────────────────────────── -->
+	<!-- ── Column reference (IMPROVEMENT-3: color-coded section headers) ── -->
 	<div class="lcui-card">
 		<h2>Column Reference <button type="button" class="button button-small lcui-toggle-ref">Show / Hide</button></h2>
 		<div id="lcui-col-ref" style="display:none">
 			<?php foreach ( $section_titles as $section => $title ) : ?>
 				<?php if ( empty( $sections[ $section ] ) ) : continue; endif; ?>
-				<h3><?php echo esc_html( $title ); ?></h3>
+				<h3 class="<?php echo esc_attr( $section_css_classes[ $section ] ?? '' ); ?>"><?php echo esc_html( $title ); ?></h3>
 				<table class="widefat striped lcui-ref-table">
 					<thead>
 						<tr>
@@ -200,25 +221,52 @@ $section_titles = [
 </div>
 
 <?php
-// ── Results renderer (static method called inline above) ─────────────────────
-// We add it as a free function inside the template to keep the template self-contained.
+// ── Results renderer ─────────────────────────────────────────────────────────
 if ( ! function_exists( 'lcui_render_results_inline' ) ) :
 function lcui_render_results_inline( array $results ): void {
 	$total_warnings = (int) ( $results['warnings'] ?? 0 );
+	$total_errors   = (int) ( $results['errors'] ?? 0 );
+	$created        = (int) ( $results['created'] ?? 0 );
+	$updated        = (int) ( $results['updated'] ?? 0 );
 	?>
-	<div class="lcui-card lcui-results">
+	<div id="lcui-results" class="lcui-card lcui-results">
 		<h2><?php echo $results['dry_run'] ? 'Dry Run Preview' : 'Import Results'; ?></h2>
+
+		<?php // UX-8: Summary banner ?>
+		<?php if ( ! $results['dry_run'] ) : ?>
+			<?php if ( $total_errors === 0 && $total_warnings === 0 ) : ?>
+				<div class="lcui-summary-banner lcui-banner-success">
+					Import complete. <?php echo $created; ?> user(s) created, <?php echo $updated; ?> updated, 0 errors.
+				</div>
+			<?php elseif ( $total_errors === 0 && $total_warnings > 0 ) : ?>
+				<div class="lcui-summary-banner lcui-banner-warning">
+					Import complete with some skipped fields. <?php echo $created; ?> user(s) created, <?php echo $updated; ?> updated, <?php echo $total_warnings; ?> warning(s). See details below.
+				</div>
+			<?php else : ?>
+				<div class="lcui-summary-banner lcui-banner-error">
+					Import finished with errors. <?php echo $created; ?> user(s) created, <?php echo $total_errors; ?> row(s) skipped due to errors. See details below.
+				</div>
+			<?php endif; ?>
+		<?php endif; ?>
+
 		<ul class="lcui-summary">
 			<li><strong>Total rows:</strong> <?php echo (int) $results['total']; ?></li>
 			<?php if ( ! $results['dry_run'] ) : ?>
-			<li><strong>Created:</strong> <?php echo (int) $results['created']; ?></li>
-			<li><strong>Updated:</strong> <?php echo (int) $results['updated']; ?></li>
+			<li><strong>Created:</strong> <?php echo $created; ?></li>
+			<li><strong>Updated:</strong> <?php echo $updated; ?></li>
 			<?php endif; ?>
 			<?php if ( $total_warnings > 0 ) : ?>
 			<li class="lcui-summary-warning"><strong>Warnings:</strong> <?php echo $total_warnings; ?></li>
 			<?php endif; ?>
-			<li><strong>Errors / skipped:</strong> <?php echo (int) $results['errors']; ?></li>
+			<li><strong>Errors / skipped:</strong> <?php echo $total_errors; ?></li>
 		</ul>
+
+		<?php // UX-5: Color coding legend ?>
+		<p class="lcui-results-legend">
+			<span class="lcui-legend-error">Red rows</span> = user was not created or updated.
+			<span class="lcui-legend-warning">Yellow rows</span> = user was saved, but something was skipped.
+			<span class="lcui-legend-ok">Green rows</span> = all good.
+		</p>
 
 		<table class="widefat striped">
 			<thead>
@@ -281,13 +329,12 @@ function lcui_render_results_inline( array $results ): void {
 			</tbody>
 		</table>
 	</div>
+	<script>
+	document.addEventListener('DOMContentLoaded', function() {
+		var r = document.getElementById('lcui-results');
+		if (r) { r.scrollIntoView({ behavior: 'smooth' }); }
+	});
+	</script>
 	<?php
 }
 endif;
-
-// Hook render function into the class call above
-// (The class calls self::render_results() but since this is a template
-//  we define the function here and the class delegates here.)
-if ( $results ) {
-	lcui_render_results_inline( $results );
-}

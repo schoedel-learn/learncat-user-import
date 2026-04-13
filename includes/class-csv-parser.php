@@ -30,6 +30,7 @@ class LCUI_CSV_Parser {
 			'headers' => [],
 			'rows'    => [],
 			'error'   => '',
+			'notices' => [],
 		];
 
 		// ── Validate upload ───────────────────────────────────────────────────
@@ -79,6 +80,24 @@ class LCUI_CSV_Parser {
 			$row_number++;
 			if ( empty( array_filter( $raw ) ) ) {
 				continue; // skip completely empty rows
+			}
+
+			// Detect and skip rows where any cell value starts with "Valid:" (description row pattern)
+			$is_description_row = false;
+			foreach ( $raw as $cell ) {
+				if ( strpos( trim( $cell ), 'Valid:' ) === 0 ) {
+					$is_description_row = true;
+					break;
+				}
+			}
+			if ( $is_description_row ) {
+				if ( $row_number === 2 ) {
+					$result['notices'][] = [
+						'type'    => 'warning',
+						'message' => 'It looks like the description row from the template is still in your file (Row 2). We skipped it automatically, but for best results delete Row 2 from your spreadsheet before exporting to CSV.',
+					];
+				}
+				continue; // skip description rows
 			}
 
 			// Pad row to same length as headers (handles trailing missing commas)

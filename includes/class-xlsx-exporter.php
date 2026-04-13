@@ -51,7 +51,7 @@ class LCUI_XLSX_Exporter {
 		$options_map = [];
 		$opt_col_index = 0;
 
-		foreach ( $fields as $i => $field ) {
+		foreach ( $fields as $col_idx => $field ) {
 			$values = $field['values'];
 			if ( empty( $values ) ) {
 				continue;
@@ -75,7 +75,7 @@ class LCUI_XLSX_Exporter {
 				$options_sheet->setCellValue( $opt_letter . ( $row_idx + 2 ), $val );
 			}
 
-			$options_map[ $i ] = [
+			$options_map[ $col_idx ] = [
 				'letter'    => $opt_letter,
 				'row_count' => count( $values ),
 			];
@@ -85,13 +85,18 @@ class LCUI_XLSX_Exporter {
 		$data_sheet = $spreadsheet->getSheet( 0 );
 		$data_sheet->setTitle( 'Import Data' );
 
-		// Header style
-		$header_fill  = [ 'fillType' => Fill::FILL_SOLID, 'startColor' => [ 'rgb' => '4472C4' ] ];
+		// Header style — color-coded by section
+		$section_colors = [
+			'wp_core'     => '4472C4', // blue
+			'buddyboss'   => '70AD47', // green
+			'woocommerce' => '7030A0', // purple
+			'learndash'   => 'ED7D31', // orange
+		];
 		$header_font  = [ 'bold' => true, 'color' => [ 'rgb' => 'FFFFFF' ] ];
 		$desc_fill    = [ 'fillType' => Fill::FILL_SOLID, 'startColor' => [ 'rgb' => 'F2F2F2' ] ];
 		$desc_font    = [ 'italic' => true, 'color' => [ 'rgb' => '808080' ] ];
 
-		$data_rows = 200; // Empty data rows for the template
+		$data_rows = 1000; // Empty data rows for the template
 
 		foreach ( $fields as $col_idx => $field ) {
 			$col_letter = Coordinate::stringFromColumnIndex( $col_idx + 1 );
@@ -100,6 +105,8 @@ class LCUI_XLSX_Exporter {
 			$values = $field['values'];
 
 			// Row 1: Header
+			$section_rgb = $section_colors[ $def['section'] ] ?? '4472C4';
+			$header_fill = [ 'fillType' => Fill::FILL_SOLID, 'startColor' => [ 'rgb' => $section_rgb ] ];
 			$data_sheet->setCellValue( $col_letter . '1', $slug );
 			$data_sheet->getStyle( $col_letter . '1' )->getFill()->applyFromArray( $header_fill );
 			$data_sheet->getStyle( $col_letter . '1' )->getFont()->applyFromArray( $header_font );
@@ -129,7 +136,7 @@ class LCUI_XLSX_Exporter {
 					$validation->setType( DataValidation::TYPE_LIST );
 					$validation->setErrorStyle( DataValidation::STYLE_WARNING );
 					$validation->setAllowBlank( true );
-					$validation->setShowDropDown( true );
+					$validation->setShowDropDown( false );
 					$validation->setShowErrorMessage( true );
 					$validation->setErrorTitle( 'Not recognized' );
 					$validation->setError( 'This value isn\'t in the list of valid options. Please choose from the dropdown.' );
@@ -141,6 +148,9 @@ class LCUI_XLSX_Exporter {
 					if ( count( $values ) <= 3 ) {
 						$validation->setFormula1( '"' . implode( ',', $values ) . '"' );
 					} else {
+						if ( ! isset( $options_map[ $col_idx ] ) ) {
+							continue;
+						}
 						// Reference the Options sheet
 						$opt_info = $options_map[ $col_idx ];
 						$opt_letter = $opt_info['letter'];
@@ -152,7 +162,7 @@ class LCUI_XLSX_Exporter {
 		}
 
 		// Freeze row 1
-		$data_sheet->freezePane( 'A2' );
+		$data_sheet->freezePane( 'A3' );
 
 		// ── Sheet 3: Instructions ─────────────────────────────────────────────
 		$instructions_sheet = $spreadsheet->createSheet( 2 );
@@ -162,18 +172,23 @@ class LCUI_XLSX_Exporter {
 			'How to Use This Spreadsheet Template',
 			'',
 			'1. Fill in the "Import Data" tab starting from Row 3.',
-			'2. Row 2 shows what each column means — do not delete it.',
+			'2. Row 2 shows what each column means — do not delete it while editing.',
 			'3. For columns with a dropdown arrow, click the cell and choose from the list.',
 			'4. Columns you don\'t need can be left blank.',
-			'5. When done: File → Download → Comma Separated Values (.csv), then upload that file on the Bulk Import page.',
-			'6. Do NOT import the .xlsx file itself — export to CSV first.',
+			'5. IMPORTANT: Before exporting to CSV, delete Row 2 (the description row). If Row 2 is left in, it will cause an error on the first row of your import.',
+			'6. Export to CSV using one of these paths:',
+			'   - Google Sheets: File → Download → Comma Separated Values (.csv)',
+			'   - Excel (Windows): File → Save As → CSV (Comma delimited) (.csv)',
+			'   - Excel (Mac): File → Save As → CSV UTF-8 (Comma-delimited) (.csv)',
+			'   - LibreOffice Calc: File → Save As → Text CSV (.csv)',
+			'7. Upload the CSV file on the Bulk Import page in WordPress.',
+			'8. Do NOT import the .xlsx file itself — export to CSV first.',
 			'',
 			'Tips:',
 			'- The "user_login" and "user_email" columns are required for every row.',
 			'- To assign multiple roles or member types, separate them with a pipe character: |',
 			'- For enrollment columns (ld_enroll_*), use "yes" to enroll or leave blank to skip.',
 			'- If you leave the password column blank, a random password will be generated.',
-			'- The description row (Row 2) will be ignored during import — you can leave it in place.',
 		];
 
 		// Title style
@@ -188,6 +203,9 @@ class LCUI_XLSX_Exporter {
 		}
 
 		$instructions_sheet->getColumnDimension( 'A' )->setWidth( 100 );
+
+		// Generation timestamp
+		$instructions_sheet->setCellValue( 'D1', 'Template generated: ' . wp_date( 'Y-m-d H:i', time() ) );
 
 		// Set active sheet to Import Data
 		$spreadsheet->setActiveSheetIndex( 0 );

@@ -24,6 +24,12 @@ class LCUI_Row_Validator {
 	/** @var string[] Slugs that failed validation and should be skipped during import */
 	private array $skip_slugs = [];
 
+	/** @var bool Whether the entire row should be skipped (set by add_fatal_error) */
+	private bool $skip_row = false;
+
+	/** @var array<string, array> Filtered/cleaned values to use instead of raw cell values */
+	private array $filtered_values = [];
+
 	public function __construct( array $row ) {
 		$this->row        = $row;
 		$this->row_number = (int) ( $row['_row_number'] ?? 0 );
@@ -32,7 +38,7 @@ class LCUI_Row_Validator {
 	/**
 	 * Run all validation rules.
 	 *
-	 * @return array{warnings: string[], errors: string[], skip_slugs: string[], skip_row: bool}
+	 * @return array{warnings: string[], errors: string[], skip_slugs: string[], skip_row: bool, filtered_values: array}
 	 */
 	public function validate(): array {
 		$this->validate_email();
@@ -44,24 +50,20 @@ class LCUI_Row_Validator {
 		$this->validate_ld_enrollment();
 
 		return [
-			'warnings'   => $this->warnings,
-			'errors'     => $this->errors,
-			'skip_slugs' => $this->skip_slugs,
-			'skip_row'   => $this->should_skip_row(),
+			'warnings'        => $this->warnings,
+			'errors'          => $this->errors,
+			'skip_slugs'      => $this->skip_slugs,
+			'skip_row'        => $this->skip_row,
+			'filtered_values' => $this->filtered_values,
 		];
 	}
 
 	/**
-	 * Whether the entire row should be skipped.
+	 * Add a fatal error that causes the entire row to be skipped.
 	 */
-	private function should_skip_row(): bool {
-		// If user_email has a format error, skip the whole row
-		foreach ( $this->errors as $err ) {
-			if ( strpos( $err, 'email address' ) !== false ) {
-				return true;
-			}
-		}
-		return false;
+	private function add_fatal_error( string $message ): void {
+		$this->errors[]  = $message;
+		$this->skip_row = true;
 	}
 
 	// ── Validators ────────────────────────────────────────────────────────────
@@ -72,7 +74,7 @@ class LCUI_Row_Validator {
 			return; // Empty is handled by the importer
 		}
 		if ( ! is_email( $email ) && ! filter_var( $email, FILTER_VALIDATE_EMAIL ) ) {
-			$this->errors[] = "Row {$this->row_number}: The email address '{$email}' doesn't look valid. This row was skipped.";
+			$this->add_fatal_error( "Row {$this->row_number}: The email address '{$email}' doesn't look valid. This row was skipped." );
 		}
 	}
 
@@ -91,6 +93,7 @@ class LCUI_Row_Validator {
 			foreach ( $invalid as $bad ) {
 				$this->warnings[] = "Row {$this->row_number}: The role '{$bad}' isn't recognized. Valid roles: {$valid_list}. The unrecognized role was ignored.";
 			}
+			$this->skip_slugs[] = 'role';
 		}
 	}
 
@@ -110,8 +113,8 @@ class LCUI_Row_Validator {
 		if ( $val === '' ) {
 			return;
 		}
-		if ( strtotime( $val ) === false ) {
-			$this->warnings[] = "Row {$this->row_number}: The registration date '{$val}' couldn't be understood as a date. Expected format: YYYY-MM-DD HH:MM:SS. The value was used as-is.";
+		if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}/', trim( $val ) ) ) {
+			$this->warnings[] = "Row {$this->row_number}: The registration date '{$val}' isn't in the right format. Please use YYYY-MM-DD or YYYY-MM-DD HH:MM:SS.";
 		}
 	}
 
@@ -121,16 +124,31 @@ class LCUI_Row_Validator {
 			return;
 		}
 
-		$types       = array_filter( array_map( 'trim', explode( '|', $val ) ) );
-		$valid_types = array_keys( bp_get_member_types() );
-		$invalid     = array_diff( $types, $valid_types );
+		$types           = array_filter( array_map( 'trim', explode( '|', $val ) ) );
+		$registered_types = array_keys( bp_get_member_types() );
 
-		if ( ! empty( $invalid ) ) {
-			$valid_list = implode( ', ', $valid_types );
-			foreach ( $invalid as $bad ) {
+		$valid_types   = [];
+		$invalid_types = [];
+		foreach ( $types as $type ) {
+			if ( in_array( $type, $registered_types, true ) ) {
+				$valid_types[] = $type;
+			} else {
+				$invalid_types[] = $type;
+			}
+		}
+
+		if ( ! empty( $invalid_types ) ) {
+			$valid_list = implode( ', ', $registered_types );
+			foreach ( $invalid_types as $bad ) {
 				$this->warnings[] = "Row {$this->row_number}: The member type '{$bad}' isn't recognized. Valid options: {$valid_list}. The unrecognized type was skipped.";
 			}
+		}
+
+		if ( empty( $valid_types ) ) {
 			$this->skip_slugs[] = 'bp_member_type';
+		} else {
+			// Store the cleaned valid types so the importer can use them
+			$this->filtered_values['bp_member_type'] = $valid_types;
 		}
 	}
 
