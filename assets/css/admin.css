@@ -75,3 +75,53 @@ tr.lcui-row-ok td   { background: #f7fff7 !important; }
 
 /* Toggle button */
 .lcui-toggle-ref { margin-left: 10px; vertical-align: middle; }
+
+/* Notification Controls */
+.lcui-notification-controls {
+    background: #f9f9f9;
+    border: 1px solid #e2e4e7;
+    border-radius: 4px;
+    padding: 16px 20px;
+    margin: 16px 0 8px;
+}
+
+.lcui-notification-controls h3 {
+    margin: 0 0 6px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.lcui-notification-controls > .description {
+    margin: 0 0 12px;
+    font-size: 13px;
+}
+
+.lcui-notification-controls fieldset {
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.lcui-suppress-label {
+    display: block;
+    padding: 6px 0;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.lcui-suppress-label input[type="checkbox"] {
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+.lcui-suppress-label .description {
+    color: #777;
+    font-style: normal;
+}
+
+.lcui-suppress-label code {
+    background: #eee;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 12px;
+}

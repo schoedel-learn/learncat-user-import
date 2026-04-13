@@ -85,10 +85,20 @@ class LCUI_Admin_Page {
 			$dry_run = ! empty( $_POST['lcui_dry_run'] );
 			$parsed  = LCUI_CSV_Parser::parse( $_FILES['lcui_csv'] );
 
+			// Gather suppression options (all unchecked by default = no suppression).
+			$suppress_options = [
+				'suppress_wp_new_user'      => ! empty( $_POST['lcui_suppress_wp_new_user'] ),
+				'suppress_wc_new_account'   => ! empty( $_POST['lcui_suppress_wc_new_account'] ),
+				'suppress_wc_processing'    => ! empty( $_POST['lcui_suppress_wc_processing'] ),
+				'suppress_ld_enrollment'    => ! empty( $_POST['lcui_suppress_ld_enrollment'] ),
+				'suppress_bb_notifications' => ! empty( $_POST['lcui_suppress_bb_notifications'] ),
+				'suppress_uo_certificate'   => ! empty( $_POST['lcui_suppress_uo_certificate'] ),
+			];
+
 			if ( $parsed['error'] ) {
 				$parse_err = $parsed['error'];
 			} else {
-				$results = self::run_import( $parsed['rows'], $dry_run );
+				$results = self::run_import( $parsed['rows'], $dry_run, $suppress_options );
 			}
 		}
 
@@ -100,7 +110,7 @@ class LCUI_Admin_Page {
 
 	// ── Import runner ─────────────────────────────────────────────────────────
 
-	private static function run_import( array $rows, bool $dry_run ): array {
+	private static function run_import( array $rows, bool $dry_run, array $suppress_options = [] ): array {
 		$summary = [
 			'total'     => count( $rows ),
 			'created'   => 0,
@@ -110,6 +120,11 @@ class LCUI_Admin_Page {
 			'dry_run'   => $dry_run,
 			'rows'      => [],
 		];
+
+		// Suppress selected notification channels before processing rows.
+		if ( ! $dry_run ) {
+			LCUI_Notification_Manager::suppress( $suppress_options );
+		}
 
 		foreach ( $rows as $row ) {
 			if ( $dry_run ) {
@@ -131,7 +146,7 @@ class LCUI_Admin_Page {
 					'errors'  => [],
 				];
 			} else {
-				$importer   = new LCUI_Row_Importer( $row );
+				$importer   = new LCUI_Row_Importer( $row, $suppress_options );
 				$row_result = $importer->run();
 			}
 
@@ -150,6 +165,11 @@ class LCUI_Admin_Page {
 			}
 
 			$summary['rows'][] = $row_result;
+		}
+
+		// Restore all suppressed hooks after all rows are processed.
+		if ( ! $dry_run ) {
+			LCUI_Notification_Manager::restore();
 		}
 
 		return $summary;
