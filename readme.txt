@@ -4,7 +4,7 @@ Tags:              users, import, csv, buddyboss, learndash, woocommerce, bulk
 Requires at least: 6.0
 Tested up to:      6.8
 Requires PHP:      8.0
-Stable tag:        1.0.0
+Stable tag:        1.1.0
 License:           GPLv2 or later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -27,6 +27,7 @@ you can upload a CSV file to create or update user accounts across the full stac
 * If `user_login` or `user_email` matches an existing account the user is **updated**.
   Otherwise a new account is **created**.
 * A **Dry Run** mode lets you preview what would happen before any data is written.
+* **Notification Controls** — opt-in suppression of WP, WooCommerce, LearnDash, BuddyBoss, and Uncanny Owl notifications during import.
 * Download a fully annotated sample CSV from the admin page.
 
 == Installation ==
@@ -54,6 +55,9 @@ the admin page and in the downloadable sample CSV.
 
 = Will this send notification emails to users? =
 Only if you put `yes` in the `send_user_notification` column. Default is no.
+You can also use the **Notification Controls** section to globally suppress specific notification
+channels (WP new-user emails, WooCommerce emails, LearnDash enrollment emails, BuddyBoss
+notifications, and Uncanny Owl certificate emails) for the duration of the import.
 
 = How do I add new custom fields in the future? =
 New BuddyBoss XProfile fields are auto-discovered every time the page loads.
@@ -67,6 +71,11 @@ New courses and groups are also auto-discovered. For entirely custom meta keys, 
     });
 
 == Changelog ==
+
+= 1.1.0 =
+* Added opt-in Notification Controls section with 6 suppression checkboxes (all off by default).
+* Suppress WP new-user, WooCommerce New Account / Processing Order, LearnDash enrollment, BuddyBoss in-app, and Uncanny Owl certificate notifications.
+* New `LCUI_Notification_Manager` class with surgical hook removal and full restoration.
 
 = 1.0.0 =
 * Initial release.

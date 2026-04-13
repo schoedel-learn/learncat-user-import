@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.1.0] — 2026-04-13
+
+### Added
+- Opt-in **Notification Controls** section on the import form.
+- Six suppression checkboxes (all unchecked by default — notifications fire as configured):
+  - Suppress WP new-user notification email (`wp_new_user_notification`)
+  - Suppress WooCommerce "New Account" customer email (`customer_new_account`)
+  - Suppress WooCommerce "Processing Order" customer email (`customer_processing_order`)
+  - Suppress LearnDash enrollment emails (`learndash_course_access_added`, `learndash_group_access_added`)
+  - Suppress BuddyBoss in-app notifications (`bp_notification_after_save`)
+  - Suppress Uncanny Owl certificate emails (`learndash_course_completed`)
+- New `LCUI_Notification_Manager` class with surgical hook removal and full restoration after import.
+- Global suppress override: when WP new-user suppression is checked, the per-row `send_user_notification` CSV column is ignored.
+
 ## [1.0.0] — 2026-04-13
 
 ### Added

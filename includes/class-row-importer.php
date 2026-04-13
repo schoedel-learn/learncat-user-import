@@ -16,6 +16,9 @@ class LCUI_Row_Importer {
 	/** @var array  The raw row data */
 	private array $row;
 
+	/** @var array  Suppression options from admin form */
+	private array $suppress_options;
+
 	/** @var int|null  WP user ID once resolved */
 	private ?int $user_id = null;
 
@@ -30,8 +33,9 @@ class LCUI_Row_Importer {
 
 	// ── Public API ────────────────────────────────────────────────────────────
 
-	public function __construct( array $row ) {
-		$this->row = $row;
+	public function __construct( array $row, array $suppress_options = [] ) {
+		$this->row              = $row;
+		$this->suppress_options = $suppress_options;
 	}
 
 	/**
@@ -173,6 +177,11 @@ class LCUI_Row_Importer {
 
 		$send_notification = strtolower( $this->val( 'send_user_notification' ) );
 		$notify            = in_array( $send_notification, [ 'yes', '1', 'true' ], true );
+
+		// Global suppress overrides the per-row CSV column.
+		if ( ! empty( $this->suppress_options['suppress_wp_new_user'] ) ) {
+			$notify = false;
+		}
 
 		$result = wp_insert_user( $args );
 

@@ -56,6 +56,57 @@ $section_titles = [
 						</label>
 					</td>
 				</tr>
+			</table>
+
+			<!-- ── Notification Controls ────────────────────────────────────── -->
+			<div class="lcui-notification-controls">
+				<h3>Notification Controls</h3>
+				<p class="description">
+					All notifications fire normally by default (as configured on your site).
+					Check a box below only when you want a <strong>silent import</strong> &mdash;
+					the selected channels will be suppressed for the duration of this import.
+				</p>
+
+				<fieldset>
+					<label class="lcui-suppress-label">
+						<input type="checkbox" name="lcui_suppress_wp_new_user" value="1">
+						<strong>Suppress WP new-user notification email</strong>
+						<span class="description">&mdash; prevents <code>wp_new_user_notification</code> from firing for newly created users</span>
+					</label>
+
+					<label class="lcui-suppress-label">
+						<input type="checkbox" name="lcui_suppress_wc_new_account" value="1">
+						<strong>Suppress WooCommerce &ldquo;New Account&rdquo; customer email</strong>
+						<span class="description">&mdash; disables the <code>customer_new_account</code> WooCommerce email</span>
+					</label>
+
+					<label class="lcui-suppress-label">
+						<input type="checkbox" name="lcui_suppress_wc_processing" value="1">
+						<strong>Suppress WooCommerce &ldquo;Processing Order&rdquo; customer email</strong>
+						<span class="description">&mdash; disables the <code>customer_processing_order</code> WooCommerce email</span>
+					</label>
+
+					<label class="lcui-suppress-label">
+						<input type="checkbox" name="lcui_suppress_ld_enrollment" value="1">
+						<strong>Suppress LearnDash enrollment emails</strong>
+						<span class="description">&mdash; removes callbacks on <code>learndash_course_access_added</code> and <code>learndash_group_access_added</code></span>
+					</label>
+
+					<label class="lcui-suppress-label">
+						<input type="checkbox" name="lcui_suppress_bb_notifications" value="1">
+						<strong>Suppress BuddyBoss in-app notifications</strong>
+						<span class="description">&mdash; removes callbacks on <code>bp_notification_after_save</code></span>
+					</label>
+
+					<label class="lcui-suppress-label">
+						<input type="checkbox" name="lcui_suppress_uo_certificate" value="1">
+						<strong>Suppress Uncanny Owl certificate emails</strong>
+						<span class="description">&mdash; removes Uncanny Owl&rsquo;s callback on <code>learndash_course_completed</code></span>
+					</label>
+				</fieldset>
+			</div>
+
+			<table class="form-table" role="presentation">
 				<tr>
 					<th scope="row">On duplicate</th>
 					<td>
