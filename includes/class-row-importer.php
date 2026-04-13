@@ -31,6 +31,9 @@ class LCUI_Row_Importer {
 	/** @var string[] */
 	private array $errors = [];
 
+	/** @var string[] Slugs to skip due to validation errors */
+	private array $skip_slugs = [];
+
 	// ── Public API ────────────────────────────────────────────────────────────
 
 	public function __construct( array $row, array $suppress_options = [] ) {
@@ -41,9 +44,40 @@ class LCUI_Row_Importer {
 	/**
 	 * Execute the import for this row.
 	 *
-	 * @return array{user_id: int|null, is_new: bool, log: string[], errors: string[]}
+	 * @return array{user_id: int|null, is_new: bool, log: string[], errors: string[], warnings: string[]}
 	 */
 	public function run(): array {
+		// Run validation before any writes
+		$validator  = new LCUI_Row_Validator( $this->row );
+		$validation = $validator->validate();
+
+		// Fold warnings into log with ⚠️ prefix
+		$warnings = [];
+		foreach ( $validation['warnings'] as $w ) {
+			$this->log[] = '⚠️ ' . $w;
+			$warnings[]  = $w;
+		}
+
+		// If validation says skip entire row (e.g. bad email), stop here
+		if ( $validation['skip_row'] ) {
+			foreach ( $validation['errors'] as $e ) {
+				$this->errors[] = $e;
+			}
+			return [
+				'user_id'  => $this->user_id,
+				'is_new'   => $this->is_new,
+				'log'      => $this->log,
+				'errors'   => $this->errors,
+				'warnings' => $warnings,
+			];
+		}
+
+		// Cell-level errors: record them and mark slugs to skip
+		foreach ( $validation['errors'] as $e ) {
+			$this->errors[] = $e;
+		}
+		$this->skip_slugs = $validation['skip_slugs'];
+
 		$this->resolve_or_create_user();
 
 		if ( $this->user_id && empty( $this->errors ) ) {
@@ -54,10 +88,11 @@ class LCUI_Row_Importer {
 		}
 
 		return [
-			'user_id' => $this->user_id,
-			'is_new'  => $this->is_new,
-			'log'     => $this->log,
-			'errors'  => $this->errors,
+			'user_id'  => $this->user_id,
+			'is_new'   => $this->is_new,
+			'log'      => $this->log,
+			'errors'   => $this->errors,
+			'warnings' => $warnings,
 		];
 	}
 
@@ -244,6 +279,9 @@ class LCUI_Row_Importer {
 			if ( $value === '' ) {
 				continue;
 			}
+			if ( in_array( $slug, $this->skip_slugs, true ) ) {
+				continue;
+			}
 			$def = $registry[ $slug ] ?? null;
 			if ( ! $def || empty( $def['xprofile_field_id'] ) ) {
 				continue;
@@ -266,7 +304,7 @@ class LCUI_Row_Importer {
 
 		// BuddyBoss member type
 		$member_type = $this->val( 'bp_member_type' );
-		if ( $member_type !== '' && function_exists( 'bp_set_member_type' ) ) {
+		if ( $member_type !== '' && function_exists( 'bp_set_member_type' ) && ! in_array( 'bp_member_type', $this->skip_slugs, true ) ) {
 			$types = array_filter( array_map( 'trim', explode( '|', $member_type ) ) );
 			// bp_set_member_type replaces all; set first, add rest
 			$first = array_shift( $types );
@@ -312,6 +350,10 @@ class LCUI_Row_Importer {
 
 		foreach ( $this->row as $slug => $value ) {
 			if ( strpos( $slug, 'ld_enroll_' ) !== 0 ) {
+				continue;
+			}
+
+			if ( in_array( $slug, $this->skip_slugs, true ) ) {
 				continue;
 			}
 

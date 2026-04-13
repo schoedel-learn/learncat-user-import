@@ -136,7 +136,22 @@ class LCUI_CSV_Parser {
 			}
 			foreach ( $sections[ $section ] as $slug => $def ) {
 				$headers[] = $slug;
-				$notes[]   = $def['label'] . ( $def['note'] ? ' — ' . $def['note'] : '' );
+
+				$note = $def['label'];
+				if ( ! empty( $def['note'] ) ) {
+					$note .= ' — ' . $def['note'];
+				}
+
+				// Append valid values for constrained fields
+				$valid = LCUI_Field_Registry::get_valid_values( $slug );
+				if ( ! empty( $valid ) ) {
+					$note .= ' — Valid: ' . implode( ' | ', array_slice( $valid, 0, 15 ) );
+					if ( count( $valid ) > 15 ) {
+						$note .= ' (+ ' . ( count( $valid ) - 15 ) . ' more)';
+					}
+				}
+
+				$notes[] = $note;
 			}
 		}
 

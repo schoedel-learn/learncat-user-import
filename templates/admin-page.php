@@ -125,18 +125,29 @@ $section_titles = [
 		</form>
 	</div>
 
-	<!-- ── Sample CSV download ───────────────────────────────────────────── -->
+	<!-- ── Template downloads ─────────────────────────────────────────────── -->
 	<div class="lcui-card">
-		<h2>Download Sample CSV</h2>
+		<h2>Download a Template</h2>
 		<p>
-			The sample file contains every importable column header, with a description row
-			below the header to guide data entry. Delete the description row before importing.
+			Use one of these templates to prepare your data. Every importable column is included,
+			with descriptions and (where applicable) dropdown lists of valid values.
 		</p>
-		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-			<input type="hidden" name="action" value="lcui_download_sample">
-			<?php wp_nonce_field( 'lcui_download_sample' ); ?>
-			<input type="submit" class="button button-secondary" value="⬇ Download sample CSV">
-		</form>
+
+		<div class="lcui-download-section">
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="lcui-download-form lcui-download-primary">
+				<input type="hidden" name="action" value="lcui_download_xlsx">
+				<?php wp_nonce_field( 'lcui_download_xlsx' ); ?>
+				<input type="submit" class="button button-primary button-large" value="⬇ Download Spreadsheet Template">
+				<p class="description">Opens in Excel or Google Sheets. Dropdowns guide you through valid values.</p>
+			</form>
+
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="lcui-download-form">
+				<input type="hidden" name="action" value="lcui_download_sample">
+				<?php wp_nonce_field( 'lcui_download_sample' ); ?>
+				<input type="submit" class="button button-secondary" value="⬇ Download sample CSV">
+				<p class="description">Plain CSV file with column headers and descriptions. Good for quick edits in a text editor.</p>
+			</form>
+		</div>
 	</div>
 
 	<!-- ── Column reference ──────────────────────────────────────────────── -->
@@ -153,15 +164,32 @@ $section_titles = [
 							<th>Label</th>
 							<th>Required?</th>
 							<th>Notes</th>
+							<th>Valid Values</th>
 						</tr>
 					</thead>
 					<tbody>
-						<?php foreach ( $sections[ $section ] as $slug => $def ) : ?>
+						<?php foreach ( $sections[ $section ] as $slug => $def ) :
+							$valid_vals = LCUI_Field_Registry::get_valid_values( $slug );
+						?>
 							<tr>
 								<td><code><?php echo esc_html( $slug ); ?></code></td>
 								<td><?php echo esc_html( $def['label'] ); ?></td>
 								<td><?php echo $def['required'] ? '<strong>Yes</strong>' : 'No'; ?></td>
 								<td><?php echo esc_html( $def['note'] ?? '' ); ?></td>
+								<td>
+									<?php if ( empty( $valid_vals ) ) : ?>
+										<span class="lcui-valid-freetext">Free text</span>
+									<?php else :
+										$display = array_slice( $valid_vals, 0, 5 );
+										$remaining = count( $valid_vals ) - 5;
+										foreach ( $display as $v ) : ?>
+											<span class="lcui-pill"><?php echo esc_html( $v ); ?></span>
+										<?php endforeach;
+										if ( $remaining > 0 ) : ?>
+											<span class="lcui-pill lcui-pill-more">(+ <?php echo (int) $remaining; ?> more)</span>
+										<?php endif;
+									endif; ?>
+								</td>
 							</tr>
 						<?php endforeach; ?>
 					</tbody>
@@ -176,7 +204,7 @@ $section_titles = [
 // We add it as a free function inside the template to keep the template self-contained.
 if ( ! function_exists( 'lcui_render_results_inline' ) ) :
 function lcui_render_results_inline( array $results ): void {
-	$icon = $results['dry_run'] ? '🔍' : ( $results['errors'] ? '⚠️' : '✅' );
+	$total_warnings = (int) ( $results['warnings'] ?? 0 );
 	?>
 	<div class="lcui-card lcui-results">
 		<h2><?php echo $results['dry_run'] ? 'Dry Run Preview' : 'Import Results'; ?></h2>
@@ -185,8 +213,11 @@ function lcui_render_results_inline( array $results ): void {
 			<?php if ( ! $results['dry_run'] ) : ?>
 			<li><strong>Created:</strong> <?php echo (int) $results['created']; ?></li>
 			<li><strong>Updated:</strong> <?php echo (int) $results['updated']; ?></li>
-			<li><strong>Errors / skipped:</strong> <?php echo (int) $results['errors']; ?></li>
 			<?php endif; ?>
+			<?php if ( $total_warnings > 0 ) : ?>
+			<li class="lcui-summary-warning"><strong>Warnings:</strong> <?php echo $total_warnings; ?></li>
+			<?php endif; ?>
+			<li><strong>Errors / skipped:</strong> <?php echo (int) $results['errors']; ?></li>
 		</ul>
 
 		<table class="widefat striped">
@@ -196,12 +227,17 @@ function lcui_render_results_inline( array $results ): void {
 					<th>User</th>
 					<th>Action</th>
 					<th>Log</th>
+					<th>Warnings</th>
 					<th>Errors</th>
 				</tr>
 			</thead>
 			<tbody>
-				<?php foreach ( $results['rows'] as $r ) : ?>
-					<tr class="<?php echo ! empty( $r['errors'] ) ? 'lcui-row-error' : 'lcui-row-ok'; ?>">
+				<?php foreach ( $results['rows'] as $r ) :
+					$has_errors   = ! empty( $r['errors'] );
+					$has_warnings = ! empty( $r['warnings'] );
+					$row_class    = $has_errors ? 'lcui-row-error' : ( $has_warnings ? 'lcui-row-warning' : 'lcui-row-ok' );
+				?>
+					<tr class="<?php echo $row_class; ?>">
 						<td><?php echo (int) $r['row_number']; ?></td>
 						<td><?php echo esc_html( $r['identifier'] ); ?></td>
 						<td>
@@ -214,8 +250,19 @@ function lcui_render_results_inline( array $results ): void {
 						<td>
 							<?php if ( ! empty( $r['log'] ) ) : ?>
 								<ul class="lcui-log">
-									<?php foreach ( $r['log'] as $entry ) : ?>
-										<li><?php echo esc_html( $entry ); ?></li>
+									<?php foreach ( $r['log'] as $entry ) :
+										$is_warning = ( strpos( $entry, '⚠️' ) === 0 );
+									?>
+										<li class="<?php echo $is_warning ? 'lcui-warning' : ''; ?>"><?php echo esc_html( $entry ); ?></li>
+									<?php endforeach; ?>
+								</ul>
+							<?php endif; ?>
+						</td>
+						<td>
+							<?php if ( ! empty( $r['warnings'] ) ) : ?>
+								<ul class="lcui-warnings">
+									<?php foreach ( $r['warnings'] as $w ) : ?>
+										<li><?php echo esc_html( $w ); ?></li>
 									<?php endforeach; ?>
 								</ul>
 							<?php endif; ?>

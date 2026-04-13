@@ -3,7 +3,7 @@
  * Plugin Name:       LearnCAT User Import
  * Plugin URI:        https://github.com/schoedel-learn/learncat-user-import
  * Description:       Bulk import users via CSV into WordPress, BuddyBoss XProfile, WooCommerce billing/shipping, and LearnDash groups & courses. Unknown columns are silently skipped.
- * Version:           1.1.0
+ * Version:           1.2.0
  * Requires at least: 6.0
  * Requires PHP:      8.0
  * Author:            Barry Schoedel
@@ -17,15 +17,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'LCUI_VERSION',   '1.1.0' );
+define( 'LCUI_VERSION',   '1.2.0' );
 define( 'LCUI_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LCUI_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+
+// ── Composer autoload (PhpSpreadsheet) ────────────────────────────────────────
+$lcui_autoload = LCUI_PLUGIN_DIR . 'vendor/autoload.php';
+if ( file_exists( $lcui_autoload ) ) {
+	require_once $lcui_autoload;
+}
 
 // ── Autoload includes ────────────────────────────────────────────────────────
 require_once LCUI_PLUGIN_DIR . 'includes/class-field-registry.php';
 require_once LCUI_PLUGIN_DIR . 'includes/class-csv-parser.php';
+require_once LCUI_PLUGIN_DIR . 'includes/class-row-validator.php';
 require_once LCUI_PLUGIN_DIR . 'includes/class-row-importer.php';
 require_once LCUI_PLUGIN_DIR . 'includes/class-notification-manager.php';
+require_once LCUI_PLUGIN_DIR . 'includes/class-xlsx-exporter.php';
 require_once LCUI_PLUGIN_DIR . 'includes/class-admin-page.php';
 
 // ── Boot ─────────────────────────────────────────────────────────────────────

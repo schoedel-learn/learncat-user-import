@@ -125,3 +125,74 @@ tr.lcui-row-ok td   { background: #f7fff7 !important; }
     border-radius: 3px;
     font-size: 12px;
 }
+
+/* ── Warnings ──────────────────────────────────────────────────────────── */
+.lcui-warning {
+    color: #b45309;
+}
+
+.lcui-warnings {
+    margin: 0;
+    padding: 0 0 0 16px;
+    font-size: 12px;
+    color: #b45309;
+}
+
+tr.lcui-row-warning td {
+    background: #fffbeb !important;
+}
+
+.lcui-summary-warning {
+    background: #fef3c7 !important;
+    border-color: #f59e0b !important;
+    color: #92400e;
+}
+
+/* ── Valid Values pills ────────────────────────────────────────────────── */
+.lcui-pill {
+    display: inline-block;
+    background: #e5e7eb;
+    color: #374151;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 11px;
+    margin: 1px 2px;
+    white-space: nowrap;
+}
+
+.lcui-pill-more {
+    background: #f3f4f6;
+    color: #6b7280;
+    font-style: italic;
+}
+
+.lcui-valid-freetext {
+    color: #9ca3af;
+    font-size: 12px;
+    font-style: italic;
+}
+
+/* ── Download section ──────────────────────────────────────────────────── */
+.lcui-download-section {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+
+.lcui-download-form {
+    flex: 1;
+    min-width: 200px;
+}
+
+.lcui-download-form .description {
+    margin-top: 6px;
+    font-size: 12px;
+}
+
+.lcui-download-primary {
+    padding: 12px 16px;
+    background: #f0f6fc;
+    border: 1px solid #c8dbe8;
+    border-radius: 4px;
+}

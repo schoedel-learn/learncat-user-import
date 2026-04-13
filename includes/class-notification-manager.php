@@ -54,7 +54,6 @@ class LCUI_Notification_Manager {
 
 		if ( ! empty( $options['suppress_wc_new_account'] ) ) {
 			self::suppress_wc_email( 'customer_new_account' );
-			self::remove_action_by_function( 'woocommerce_created_customer', 'wc_new_customer_note_notification' );
 		}
 
 		if ( ! empty( $options['suppress_wc_processing'] ) ) {
@@ -124,8 +123,8 @@ class LCUI_Notification_Manager {
 	private static function suppress_learndash_enrollment(): void {
 		// LearnDash fires emails on course/group access hooks.
 		$hooks = [
-			'learndash_course_access_added',
-			'learndash_group_access_added',
+			'learndash_update_course_access',
+			'ld_added_group_access',
 		];
 
 		foreach ( $hooks as $hook ) {
