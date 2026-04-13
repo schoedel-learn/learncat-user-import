@@ -36,6 +36,63 @@ class LCUI_Field_Registry {
 		return self::$fields[ $slug ] ?? null;
 	}
 
+	/**
+	 * Return valid values for a constrained field.
+	 *
+	 * @param string $slug  Column slug.
+	 * @return array  Valid value strings, or empty array for open-text fields.
+	 */
+	public static function get_valid_values( string $slug ): array {
+		self::build();
+		$def = self::$fields[ $slug ] ?? null;
+		if ( ! $def ) {
+			return [];
+		}
+
+		// Role field
+		if ( $slug === 'role' ) {
+			return array_keys( wp_roles()->roles );
+		}
+
+		// send_user_notification
+		if ( $slug === 'send_user_notification' ) {
+			return [ 'yes', 'no' ];
+		}
+
+		// BuddyBoss member type
+		if ( $slug === 'bp_member_type' && function_exists( 'bp_get_member_types' ) ) {
+			return array_keys( bp_get_member_types() );
+		}
+
+		// XProfile constrained types
+		if ( ! empty( $def['xprofile_field_id'] ) && in_array( $def['xprofile_type'] ?? '', [ 'selectbox', 'radio', 'checkbox', 'multiselectbox' ], true ) ) {
+			$field   = new BP_XProfile_Field( $def['xprofile_field_id'] );
+			$options = $field->get_children();
+			if ( empty( $options ) || ! is_array( $options ) ) {
+				return [];
+			}
+			return wp_list_pluck( $options, 'name' );
+		}
+
+		// LearnDash enrollment columns
+		if ( strpos( $slug, 'ld_enroll_' ) === 0 ) {
+			return [ 'yes', 'no' ];
+		}
+
+		// Billing / shipping country
+		if ( in_array( $slug, [ 'billing_country', 'shipping_country' ], true ) && function_exists( 'WC' ) ) {
+			return array_keys( WC()->countries->get_countries() );
+		}
+
+		// Billing / shipping state
+		if ( in_array( $slug, [ 'billing_state', 'shipping_state' ], true ) && function_exists( 'WC' ) ) {
+			$states = WC()->countries->get_states( 'US' );
+			return $states ? array_keys( $states ) : [];
+		}
+
+		return [];
+	}
+
 	public static function sections(): array {
 		self::build();
 		$out = [];

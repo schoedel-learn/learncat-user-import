@@ -28,8 +28,17 @@ class LCUI_Row_Importer {
 	/** @var string[] */
 	private array $log = [];
 
-	/** @var string[] */
+	/** @var string[] Row-fatal errors (block entire row) */
 	private array $errors = [];
+
+	/** @var string[] Cell-level errors (don't block the row) */
+	private array $cell_errors = [];
+
+	/** @var string[] Slugs to skip due to validation errors */
+	private array $skip_slugs = [];
+
+	/** @var array<string, array> Filtered values from validator */
+	private array $filtered_values = [];
 
 	// ── Public API ────────────────────────────────────────────────────────────
 
@@ -41,11 +50,44 @@ class LCUI_Row_Importer {
 	/**
 	 * Execute the import for this row.
 	 *
-	 * @return array{user_id: int|null, is_new: bool, log: string[], errors: string[]}
+	 * @return array{user_id: int|null, is_new: bool, log: string[], errors: string[], warnings: string[]}
 	 */
 	public function run(): array {
+		// Run validation before any writes
+		$validator  = new LCUI_Row_Validator( $this->row );
+		$validation = $validator->validate();
+
+		// Fold warnings into log with ⚠️ prefix
+		$warnings = [];
+		foreach ( $validation['warnings'] as $w ) {
+			$this->log[] = '⚠️ ' . $w;
+			$warnings[]  = $w;
+		}
+
+		// If validation says skip entire row (e.g. bad email), stop here
+		if ( $validation['skip_row'] ) {
+			foreach ( $validation['errors'] as $e ) {
+				$this->errors[] = $e;
+			}
+			return [
+				'user_id'  => $this->user_id,
+				'is_new'   => $this->is_new,
+				'log'      => $this->log,
+				'errors'   => $this->errors,
+				'warnings' => $warnings,
+			];
+		}
+
+		// Cell-level validation errors: record them but don't block the row
+		foreach ( $validation['errors'] as $e ) {
+			$this->cell_errors[] = $e;
+		}
+		$this->skip_slugs      = $validation['skip_slugs'];
+		$this->filtered_values = $validation['filtered_values'] ?? [];
+
 		$this->resolve_or_create_user();
 
+		// Only proceed with optional field writes if no row-fatal errors
 		if ( $this->user_id && empty( $this->errors ) ) {
 			$this->import_wp_core_meta();
 			$this->import_buddyboss();
@@ -53,11 +95,15 @@ class LCUI_Row_Importer {
 			$this->import_learndash();
 		}
 
+		// Merge both error types for display
+		$all_errors = array_merge( $this->errors, $this->cell_errors );
+
 		return [
-			'user_id' => $this->user_id,
-			'is_new'  => $this->is_new,
-			'log'     => $this->log,
-			'errors'  => $this->errors,
+			'user_id'  => $this->user_id,
+			'is_new'   => $this->is_new,
+			'log'      => $this->log,
+			'errors'   => $all_errors,
+			'warnings' => $warnings,
 		];
 	}
 
@@ -121,7 +167,7 @@ class LCUI_Row_Importer {
 		if ( count( $args ) > 1 ) { // more than just 'ID'
 			$result = wp_update_user( $args );
 			if ( is_wp_error( $result ) ) {
-				$this->errors[] = 'wp_update_user: ' . $result->get_error_message();
+				$this->errors[] = 'Could not update user: ' . $result->get_error_message();
 			} else {
 				$this->log[] = 'Updated WP core user (ID ' . $existing->ID . ')';
 			}
@@ -186,7 +232,7 @@ class LCUI_Row_Importer {
 		$result = wp_insert_user( $args );
 
 		if ( is_wp_error( $result ) ) {
-			$this->errors[] = 'wp_insert_user: ' . $result->get_error_message();
+			$this->errors[] = 'Could not create user: ' . $result->get_error_message();
 			return;
 		}
 
@@ -203,6 +249,11 @@ class LCUI_Row_Importer {
 	}
 
 	private function apply_roles( int $user_id ): void {
+		// BUG-11: Skip role application if validator flagged role as invalid
+		if ( in_array( 'role', $this->skip_slugs, true ) ) {
+			return;
+		}
+
 		$role_raw = $this->val( 'role' );
 		if ( $role_raw === '' ) {
 			return;
@@ -244,6 +295,9 @@ class LCUI_Row_Importer {
 			if ( $value === '' ) {
 				continue;
 			}
+			if ( in_array( $slug, $this->skip_slugs, true ) ) {
+				continue;
+			}
 			$def = $registry[ $slug ] ?? null;
 			if ( ! $def || empty( $def['xprofile_field_id'] ) ) {
 				continue;
@@ -260,21 +314,26 @@ class LCUI_Row_Importer {
 			if ( $ok ) {
 				$this->log[] = 'XProfile field ' . $field_id . ' set.';
 			} else {
-				$this->errors[] = 'XProfile field ' . $field_id . ': xprofile_set_field_data() returned false.';
+				$this->cell_errors[] = 'Could not save the profile field "' . esc_html( $def['label'] ?? $field_id ) . '". The value may not be valid for this field type.';
 			}
 		}
 
 		// BuddyBoss member type
 		$member_type = $this->val( 'bp_member_type' );
-		if ( $member_type !== '' && function_exists( 'bp_set_member_type' ) ) {
-			$types = array_filter( array_map( 'trim', explode( '|', $member_type ) ) );
+		if ( $member_type !== '' && function_exists( 'bp_set_member_type' ) && ! in_array( 'bp_member_type', $this->skip_slugs, true ) ) {
+			// BUG-12: Use filtered valid types when available
+			if ( ! empty( $this->filtered_values['bp_member_type'] ) ) {
+				$types = $this->filtered_values['bp_member_type'];
+			} else {
+				$types = array_filter( array_map( 'trim', explode( '|', $member_type ) ) );
+			}
 			// bp_set_member_type replaces all; set first, add rest
 			$first = array_shift( $types );
 			bp_set_member_type( $this->user_id, $first );
 			foreach ( $types as $mt ) {
 				bp_set_member_type( $this->user_id, $mt, true );
 			}
-			$this->log[] = 'Member type(s) set: ' . $member_type;
+			$this->log[] = 'Member type(s) set: ' . implode( ', ', array_merge( [ $first ], $types ) );
 		}
 	}
 
@@ -292,12 +351,16 @@ class LCUI_Row_Importer {
 			'shipping_phone',
 		];
 
+		$wc_fields_set = [];
 		foreach ( $wc_keys as $key ) {
 			$v = $this->val( $key );
 			if ( $v !== '' ) {
 				update_user_meta( $this->user_id, $key, $v );
-				$this->log[] = 'WC meta ' . $key . ' set.';
+				$wc_fields_set[] = $key;
 			}
+		}
+		if ( ! empty( $wc_fields_set ) ) {
+			$this->log[] = 'Updated ' . count( $wc_fields_set ) . ' WooCommerce billing/shipping field(s).';
 		}
 	}
 
@@ -312,6 +375,10 @@ class LCUI_Row_Importer {
 
 		foreach ( $this->row as $slug => $value ) {
 			if ( strpos( $slug, 'ld_enroll_' ) !== 0 ) {
+				continue;
+			}
+
+			if ( in_array( $slug, $this->skip_slugs, true ) ) {
 				continue;
 			}
 

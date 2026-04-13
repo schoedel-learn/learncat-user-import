@@ -3,6 +3,29 @@
 All notable changes to this project will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.2.0] — 2026-04-13
+
+### Added
+- **XLSX Template Export** — "Download Spreadsheet Template" button generates a `.xlsx` file
+  with dropdown validation for constrained fields (roles, member types, XProfile options,
+  enrollment columns). Opens in Excel or Google Sheets. Powered by PhpSpreadsheet.
+- **Server-side field validation** — new `LCUI_Row_Validator` class checks every constrained
+  field before import. Invalid values produce plain-English warnings (orange) or errors (red).
+  Validation runs in both live and dry-run modes.
+- **Valid Values column** in the Column Reference table — constrained fields show pill badges
+  with their accepted values; open-text fields show "Free text."
+- **Enhanced sample CSV** — description row now lists valid values for constrained fields.
+- `LCUI_Field_Registry::get_valid_values()` — reusable method that returns the valid options
+  array for any constrained field slug.
+- Warnings column in the results table — validation warnings are separated from errors,
+  displayed in orange with ⚠️ prefix.
+
+### Fixed
+- LearnDash hook names corrected: `learndash_update_course_access` and `ld_added_group_access`
+  (was `learndash_course_access_added` / `learndash_group_access_added`).
+- Removed phantom `wc_new_customer_note_notification` reference that does not exist in
+  WooCommerce 10.x.
+
 ## [1.1.0] — 2026-04-13
 
 ### Added

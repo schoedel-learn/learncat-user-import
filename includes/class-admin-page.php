@@ -14,6 +14,7 @@ class LCUI_Admin_Page {
 		add_action( 'admin_menu',        [ self::class, 'register_menu' ] );
 		add_action( 'admin_enqueue_scripts', [ self::class, 'enqueue_assets' ] );
 		add_action( 'admin_post_lcui_download_sample', [ self::class, 'handle_sample_download' ] );
+		add_action( 'admin_post_lcui_download_xlsx', [ self::class, 'handle_xlsx_download' ] );
 	}
 
 	// ── Menu ─────────────────────────────────────────────────────────────────
@@ -65,6 +66,24 @@ class LCUI_Admin_Page {
 		exit;
 	}
 
+	// ── XLSX Template download ────────────────────────────────────────────────
+
+	public static function handle_xlsx_download(): void {
+		if ( ! current_user_can( self::CAPABILITY ) ) {
+			wp_die( 'Unauthorised' );
+		}
+		check_admin_referer( 'lcui_download_xlsx' );
+
+		// PhpSpreadsheet can be memory-hungry on large column sets.
+		$prev_limit = ini_get( 'memory_limit' );
+		ini_set( 'memory_limit', '256M' ); // phpcs:ignore WordPress.PHP.IniSet.memory_limit_Blacklisted
+
+		LCUI_XLSX_Exporter::export();
+
+		ini_set( 'memory_limit', $prev_limit ); // phpcs:ignore WordPress.PHP.IniSet.memory_limit_Blacklisted
+		exit;
+	}
+
 	// ── Main page render ─────────────────────────────────────────────────────
 
 	public static function render_page(): void {
@@ -72,9 +91,10 @@ class LCUI_Admin_Page {
 			wp_die( 'You do not have permission to access this page.' );
 		}
 
-		$results   = null;
-		$parse_err = '';
-		$dry_run   = false;
+		$results      = null;
+		$parse_err    = '';
+		$parse_notices = [];
+		$dry_run      = false;
 
 		// Handle form submission
 		if (
@@ -94,6 +114,10 @@ class LCUI_Admin_Page {
 				'suppress_bb_notifications' => ! empty( $_POST['lcui_suppress_bb_notifications'] ),
 				'suppress_uo_certificate'   => ! empty( $_POST['lcui_suppress_uo_certificate'] ),
 			];
+
+			if ( ! empty( $parsed['notices'] ) ) {
+				$parse_notices = $parsed['notices'];
+			}
 
 			if ( $parsed['error'] ) {
 				$parse_err = $parsed['error'];
@@ -117,6 +141,7 @@ class LCUI_Admin_Page {
 			'updated'   => 0,
 			'skipped'   => 0,
 			'errors'    => 0,
+			'warnings'  => 0,
 			'dry_run'   => $dry_run,
 			'rows'      => [],
 		];
@@ -129,6 +154,7 @@ class LCUI_Admin_Page {
 		foreach ( $rows as $row ) {
 			if ( $dry_run ) {
 				// In dry-run: resolve user only, don't write anything.
+				// But still run validation so the admin can see issues.
 				$login    = trim( $row['user_login'] ?? '' );
 				$email    = trim( $row['user_email'] ?? '' );
 				$existing = false;
@@ -140,11 +166,23 @@ class LCUI_Admin_Page {
 				}
 
 				$row_result = [
-					'user_id' => null,
-					'is_new'  => ! $existing,
-					'log'     => [ $existing ? '[DRY RUN] Would update existing user.' : '[DRY RUN] Would create new user.' ],
-					'errors'  => [],
+					'user_id'  => null,
+					'is_new'   => ! $existing,
+					'log'      => [ $existing ? '[DRY RUN] Would update existing user.' : '[DRY RUN] Would create new user.' ],
+					'errors'   => [],
+					'warnings' => [],
 				];
+
+				// Run validation in dry-run mode too
+				$validator  = new LCUI_Row_Validator( $row );
+				$validation = $validator->validate();
+				foreach ( $validation['warnings'] as $w ) {
+					$row_result['log'][]      = '⚠️ ' . $w;
+					$row_result['warnings'][] = $w;
+				}
+				foreach ( $validation['errors'] as $e ) {
+					$row_result['errors'][] = $e;
+				}
 			} else {
 				$importer   = new LCUI_Row_Importer( $row, $suppress_options );
 				$row_result = $importer->run();
@@ -152,6 +190,10 @@ class LCUI_Admin_Page {
 
 			$row_result['row_number'] = $row['_row_number'];
 			$row_result['identifier'] = $row['user_email'] ?? $row['user_login'] ?? 'row ' . $row['_row_number'];
+
+			if ( ! empty( $row_result['warnings'] ) ) {
+				$summary['warnings'] += count( $row_result['warnings'] );
+			}
 
 			if ( ! empty( $row_result['errors'] ) ) {
 				$summary['errors']++;

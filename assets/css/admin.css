@@ -24,7 +24,7 @@
     padding-bottom: 10px;
 }
 
-/* Results */
+/* ── Results ──────────────────────────────────────────────────────────── */
 .lcui-results { border-left: 4px solid #00a0d2; }
 
 .lcui-summary {
@@ -44,9 +44,74 @@
     font-size: 13px;
 }
 
-/* Row states */
-tr.lcui-row-error td { background: #fff5f5 !important; }
-tr.lcui-row-ok td   { background: #f7fff7 !important; }
+/* ── UX-8: Summary banners ────────────────────────────────────────────── */
+.lcui-summary-banner {
+    padding: 12px 16px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.lcui-banner-success {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+}
+
+.lcui-banner-warning {
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    color: #856404;
+}
+
+.lcui-banner-error {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+/* ── UX-5: Row color coding ───────────────────────────────────────────── */
+tr.lcui-row-error td   { background: #fff5f5 !important; }
+tr.lcui-row-warning td { background: #fffbe6 !important; }
+tr.lcui-row-ok td      { background: #f7fff7 !important; }
+
+/* ── UX-5: Results legend ─────────────────────────────────────────────── */
+.lcui-results-legend {
+    font-size: 12px;
+    color: #555;
+    margin: 0 0 12px;
+}
+
+.lcui-legend-error {
+    display: inline-block;
+    background: #fff5f5;
+    border: 1px solid #f5c6cb;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+    color: #721c24;
+}
+
+.lcui-legend-warning {
+    display: inline-block;
+    background: #fffbe6;
+    border: 1px solid #ffc107;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+    color: #856404;
+}
+
+.lcui-legend-ok {
+    display: inline-block;
+    background: #f7fff7;
+    border: 1px solid #c3e6cb;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+    color: #155724;
+}
 
 .lcui-badge {
     display: inline-block;
@@ -69,14 +134,39 @@ tr.lcui-row-ok td   { background: #f7fff7 !important; }
 
 .lcui-errors { color: #c0392b; }
 
-/* Reference table */
+/* ── Reference table ──────────────────────────────────────────────────── */
 .lcui-ref-table { margin-bottom: 20px; font-size: 13px; }
 .lcui-ref-table code { background: #f1f1f1; padding: 1px 5px; border-radius: 3px; }
 
 /* Toggle button */
 .lcui-toggle-ref { margin-left: 10px; vertical-align: middle; }
 
-/* Notification Controls */
+/* ── IMPROVEMENT-3: Color-coded section headers ───────────────────────── */
+#lcui-col-ref h3.lcui-section-wp {
+    border-left: 4px solid #4472C4;
+    padding-left: 10px;
+    color: #2b5797;
+}
+
+#lcui-col-ref h3.lcui-section-bb {
+    border-left: 4px solid #70AD47;
+    padding-left: 10px;
+    color: #4a7a2e;
+}
+
+#lcui-col-ref h3.lcui-section-wc {
+    border-left: 4px solid #7030A0;
+    padding-left: 10px;
+    color: #5a2580;
+}
+
+#lcui-col-ref h3.lcui-section-ld {
+    border-left: 4px solid #ED7D31;
+    padding-left: 10px;
+    color: #b85d1a;
+}
+
+/* ── UX-4: Notification Controls ──────────────────────────────────────── */
 .lcui-notification-controls {
     background: #f9f9f9;
     border: 1px solid #e2e4e7;
@@ -124,4 +214,87 @@ tr.lcui-row-ok td   { background: #f7fff7 !important; }
     padding: 1px 5px;
     border-radius: 3px;
     font-size: 12px;
+}
+
+/* ── Warnings ─────────────────────────────────────────────────────────── */
+.lcui-warning {
+    color: #b45309;
+}
+
+.lcui-warnings {
+    margin: 0;
+    padding: 0 0 0 16px;
+    font-size: 12px;
+    color: #b45309;
+}
+
+.lcui-summary-warning {
+    background: #fef3c7 !important;
+    border-color: #f59e0b !important;
+    color: #92400e;
+}
+
+/* ── Valid Values pills ───────────────────────────────────────────────── */
+.lcui-pill {
+    display: inline-block;
+    background: #e5e7eb;
+    color: #374151;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 11px;
+    margin: 1px 2px;
+    white-space: nowrap;
+}
+
+.lcui-pill-more {
+    background: #f3f4f6;
+    color: #6b7280;
+    font-style: italic;
+}
+
+.lcui-valid-freetext {
+    color: #9ca3af;
+    font-size: 12px;
+    font-style: italic;
+}
+
+/* ── Download section (UX-3) ──────────────────────────────────────────── */
+.lcui-download-section {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+
+.lcui-download-form {
+    flex: 1;
+    min-width: 200px;
+}
+
+.lcui-download-form .description {
+    margin-top: 6px;
+    font-size: 12px;
+}
+
+.lcui-download-primary {
+    padding: 12px 16px;
+    background: #f0f6fc;
+    border: 1px solid #c8dbe8;
+    border-radius: 4px;
+}
+
+.lcui-download-csv-link {
+    display: flex;
+    align-items: center;
+}
+
+.lcui-download-csv-link .description {
+    margin-top: 0;
+    color: #666;
+}
+
+/* ── Dry-run callout ──────────────────────────────────────────────────── */
+.lcui-dry-run-callout {
+    background: #fcf8e3;
+    border-left-color: #f0c36d;
 }

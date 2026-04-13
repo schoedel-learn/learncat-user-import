@@ -4,7 +4,7 @@ Tags:              users, import, csv, buddyboss, learndash, woocommerce, bulk
 Requires at least: 6.0
 Tested up to:      6.8
 Requires PHP:      8.0
-Stable tag:        1.1.0
+Stable tag:        1.2.0
 License:           GPLv2 or later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -28,7 +28,9 @@ you can upload a CSV file to create or update user accounts across the full stac
   Otherwise a new account is **created**.
 * A **Dry Run** mode lets you preview what would happen before any data is written.
 * **Notification Controls** — opt-in suppression of WP, WooCommerce, LearnDash, BuddyBoss, and Uncanny Owl notifications during import.
-* Download a fully annotated sample CSV from the admin page.
+* **XLSX Template** — download a spreadsheet template with dropdown validation for constrained fields. Opens in Excel or Google Sheets.
+* **Field Validation** — server-side validation checks constrained fields before import, showing clear warnings and errors.
+* Download a fully annotated sample CSV (now with valid values listed) from the admin page.
 
 == Installation ==
 
@@ -71,6 +73,14 @@ New courses and groups are also auto-discovered. For entirely custom meta keys, 
     });
 
 == Changelog ==
+
+= 1.2.0 =
+* Added XLSX template export with dropdown validation for constrained fields (roles, member types, XProfile options, enrollment).
+* Added server-side field validation with plain-English warnings and errors.
+* Added "Valid Values" column to the Column Reference table.
+* Enhanced sample CSV description row with valid values for constrained fields.
+* Fixed incorrect LearnDash hook names in notification suppression.
+* Removed phantom WooCommerce function reference.
 
 = 1.1.0 =
 * Added opt-in Notification Controls section with 6 suppression checkboxes (all off by default).
