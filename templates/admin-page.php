@@ -122,7 +122,8 @@ $section_css_classes = [
 
 					<label class="lcui-suppress-label">
 						<input type="checkbox" name="lcui_suppress_uo_certificate" value="1">
-						Don&rsquo;t send Uncanny Owl certificate emails
+						Don&rsquo;t send LearnDash certificate emails
+						<span class="description">Prevents the certificate PDF from being emailed to the learner when a course is marked complete during import.</span>
 					</label>
 				</fieldset>
 			</div>

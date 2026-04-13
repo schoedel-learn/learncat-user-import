@@ -69,7 +69,7 @@ class LCUI_Notification_Manager {
 		}
 
 		if ( ! empty( $options['suppress_uo_certificate'] ) ) {
-			self::suppress_uncanny_owl();
+			self::suppress_certificate_emails();
 		}
 	}
 
@@ -155,10 +155,14 @@ class LCUI_Notification_Manager {
 	}
 
 	/**
-	 * Suppress Uncanny Owl certificate emails by removing their callback
-	 * on the learndash_course_completed hook.
+	 * Suppress certificate emails triggered on course completion.
+	 *
+	 * Targets the Uncanny Toolkit Pro "Email Course Certificates" module
+	 * (hooks onto learndash_course_completed via uo_* callbacks) as well as
+	 * any LearnDash-native certificate delivery callbacks, so the suppression
+	 * works regardless of which component is doing the sending on this site.
 	 */
-	private static function suppress_uncanny_owl(): void {
+	private static function suppress_certificate_emails(): void {
 		global $wp_filter;
 
 		if ( ! isset( $wp_filter['learndash_course_completed'] ) ) {
@@ -170,12 +174,18 @@ class LCUI_Notification_Manager {
 		foreach ( $hook_obj->callbacks as $priority => $callbacks ) {
 			foreach ( $callbacks as $id => $callback_data ) {
 				if ( self::callback_belongs_to( $callback_data['function'], [
+					// Uncanny Toolkit Pro — Email Course Certificates module
 					'uncanny_learndash',
 					'uncanny_owl',
 					'Uncanny',
 					'SUSPENDED_uncanny',
 					'uo_',
 					'UO_',
+					// LearnDash native certificate callbacks (fallback)
+					'LearnDash_Certificate',
+					'learndash_certificate',
+					'ld_certificate',
+					'LDLMS\App\Models\Certificate',
 				] ) ) {
 					self::$removed[] = [
 						'hook'     => 'learndash_course_completed',
