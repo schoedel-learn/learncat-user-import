@@ -1,0 +1,77 @@
+/* LearnCAT User Import — Admin Styles */
+
+.lcui-wrap { max-width: 1100px; }
+
+.lcui-tagline {
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 20px;
+}
+
+.lcui-card {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+
+.lcui-card h2 {
+    margin-top: 0;
+    font-size: 16px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+/* Results */
+.lcui-results { border-left: 4px solid #00a0d2; }
+
+.lcui-summary {
+    list-style: none;
+    margin: 0 0 16px;
+    padding: 0;
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.lcui-summary li {
+    background: #f0f6fc;
+    border: 1px solid #c8dbe8;
+    border-radius: 4px;
+    padding: 6px 14px;
+    font-size: 13px;
+}
+
+/* Row states */
+tr.lcui-row-error td { background: #fff5f5 !important; }
+tr.lcui-row-ok td   { background: #f7fff7 !important; }
+
+.lcui-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+.lcui-badge-new    { background: #d4edda; color: #155724; }
+.lcui-badge-update { background: #d1ecf1; color: #0c5460; }
+
+.lcui-log, .lcui-errors {
+    margin: 0;
+    padding: 0 0 0 16px;
+    font-size: 12px;
+}
+
+.lcui-errors { color: #c0392b; }
+
+/* Reference table */
+.lcui-ref-table { margin-bottom: 20px; font-size: 13px; }
+.lcui-ref-table code { background: #f1f1f1; padding: 1px 5px; border-radius: 3px; }
+
+/* Toggle button */
+.lcui-toggle-ref { margin-left: 10px; vertical-align: middle; }
